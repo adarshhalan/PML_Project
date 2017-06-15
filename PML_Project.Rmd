@@ -1,0 +1,163 @@
+---
+title: "Coursera Project on Practical Machine Learning"
+author: "Adarsh Halan"
+date: "15 June 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE, cache=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Background
+
+### Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+# Data
+
+### The training data for this project are available here:
+
+### https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+### The test data are available here:
+
+### https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+### The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+# Project Goal
+
+### The goal of your project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+# Data Processing and Results 
+
+### Loading required packages, setting seed and getting data:
+```{r, results='hide'}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+library(randomForest)
+library(knitr)
+set.seed(88888)
+
+trainUrl <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testUrl <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+training <- read.csv(url(trainUrl), na.strings=c("NA","#DIV/0!",""), header = TRUE)
+testing <- read.csv(url(testUrl), na.strings=c("NA","#DIV/0!",""), header = TRUE)
+```
+```{r}
+dim(training)
+dim(testing)
+```
+
+### The training dataset has 19622 observations and 160 variables, and the testing data set contains 20 observations and the same variables as the training set. We are trying to predict the outcome of the variable classe in the training set.
+
+```{r}
+head(training)
+```
+
+We see a lot of NA variables, hence we remove them : (cleaning data)
+
+```{r}
+training <- training[, colSums(is.na(training)) == 0]
+testing <- testing[, colSums(is.na(testing)) == 0]
+dim(training); head(training)
+dim(testing); head(testing)
+
+# data still has a lot of zero variance entries, remove zero vairance entries
+nzv <- nearZeroVar(training, saveMetrics=TRUE)
+training <- training[,nzv$nzv==FALSE]
+
+nzv <- nearZeroVar(testing, saveMetrics = TRUE)
+testing <- testing[,nzv$nzv == FALSE]
+
+# remove 1st column of training data set
+training <- training[c(-1)]
+
+
+```
+
+
+### Split Training data into train and test sets for getting out-of-sample errors, predication and testing validtion thereof. 
+
+```{r}
+inTrain <- createDataPartition(training$classe, p = 0.7, list = FALSE)
+train <- training[inTrain, ]
+test <- training[-inTrain, ]
+
+c1 <- colnames(train)
+c2 <- colnames(train[, -58]) # classe column removed
+test <- test[c1]
+testing <- testing[c2]
+
+
+```
+
+### convert data into same type.
+
+```{r}
+for (i in 1:length(testing) ) {
+    for(j in 1:length(train)) {
+        if( length( grep(names(train[i]), names(testing)[j]) ) ==1)  {
+            class(testing[j]) <- class(train[i])
+        }      
+    }      
+}
+testing <- rbind(train[2, -58] , testing) 
+testing <- testing[-1,]
+dim(test) ; dim(testing)
+```
+
+
+
+## Define model and predict outcome 
+
+### Using Classification Trees
+
+```{r}
+model <- rpart(classe ~ ., data=train, method="class")
+fancyRpartPlot(model)
+```
+
+### Prediction and confusion matrix 
+
+```{r}
+#prediction on test data
+pred1 <- predict(model, test, type = "class")
+# confusion matrix
+cm1 <- confusionMatrix(pred1, test$classe)
+cm1
+plot(cm1$table)
+```
+
+#### we are getting a 86.2 % accuracy rate. There must be something missing in our above model. Lets try again with another method .
+
+## Using Random Forest Method - Prediction and confusion matrix 
+
+```{r}
+# using random forest method
+model2 <- randomForest(classe ~ ., data=train)
+model2 
+pred2 <- predict(model2, test, type = "class")
+cm2 <- confusionMatrix(pred2, test$classe)
+cm2
+plot(model2)
+```
+
+
+
+### We see that the accuracy is 99.95 % i.e. out ofsample error is 0.05%. We also see that the random forest is a better model than Clasiification Trees model. 
+
+### Lets predict the outcome on the testing set (given data) using the above model(Random Forest)
+
+```{r}
+final <- predict(model2, testing, type = "class")
+final
+```
+
+## We have successfully predicted the outcome of the test data using random forest model used on training data with 99.95% accuracy. 
+
+### This concludes our Practical Machine Learning Project
