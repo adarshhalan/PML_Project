@@ -657,7 +657,7 @@ dim(test) ; dim(testing)
 
 ## Define model and predict outcome 
 
-### Using Classification Trees
+### Using Classification Trees: We first use the R function rpart to define our model with method "class"
 
 
 ```r
@@ -721,6 +721,8 @@ plot(cm1$table)
 #### we are getting a 86.2 % accuracy rate. There must be something missing in our above model. Lets try again with another method .
 
 ## Using Random Forest Method - Prediction and confusion matrix 
+
+### The random forest model naturally provides cross validation, the technique of continuing to repartition the data again and again to make sure the break up of data does not erroneously affect the outcome. In the random forest model, hundreds of decision trees are created, broken up in different ways and on different variables, then the results averaged to provide the best accuracy. This explains why the model is both accurate and time consuming.
 
 
 ```r
@@ -795,7 +797,7 @@ plot(model2)
 
 
 
-### We see that the accuracy is 99.95 % i.e. out ofsample error is 0.05%. We also see that the random forest is a better model than Clasiification Trees model. 
+### Random forest split data into 500 trees and 7 variables were tried at each split. We see that the accuracy is 99.95 % i.e. out ofsample error is 0.05% and Pvalue nearly zero. We also see that the random forest is a better model than Clasiification Trees model. 
 
 ### Lets predict the outcome on the testing set (given data) using the above model(Random Forest)
 
